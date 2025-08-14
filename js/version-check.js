@@ -37,8 +37,8 @@ async function checkForUpdates() {
         // 获取最新版本
         let latestVersion;
         const VERSION_URL = {
-            PROXY: 'https://ghfast.top/raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt',
-            DIRECT: 'https://raw.githubusercontent.com/LibreSpark/LibreTV/main/VERSION.txt'
+            PROXY: 'https://gh-proxy.age63.work/https://github.com/ryanamigo/LibreTV/raw/refs/heads/main/VERSION.txt',
+            DIRECT: 'https://github.com/ryanamigo/LibreTV/raw/refs/heads/main/VERSION.txt'
         };
         const FETCH_TIMEOUT = 1500;
         
