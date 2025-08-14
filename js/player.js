@@ -94,6 +94,42 @@ let currentVideoUrl = ''; // 记录当前实际的视频URL
 const isWebkit = (typeof window.webkitConvertPointFromNodeToPage === 'function')
 Artplayer.FULLSCREEN_WEB_IN_BODY = true;
 
+// 全屏时添加的一些控制按钮
+const fullScreenControls = [
+    {
+        name: 'prev-episode',
+        position: 'left',
+        html: `
+            <div class="w-7 h-7">
+                <img src="/image/icons/chevron-first.svg" />
+            </div>
+        `,
+        index: 5,
+        click: function () {
+            if (currentEpisodeIndex > 0) {
+                playPreviousEpisode();
+            }
+        },
+        tooltip: '上集'
+    },
+    {
+        name: 'next-episode',
+        position: 'left',
+        html: `
+            <div class="w-7 h-7">
+                <img src="/image/icons/chevron-last.svg" />
+            </div>
+        `,
+        index: 15,
+        click: function () {
+            if (currentEpisodeIndex < currentEpisodes.length - 1) {
+                playNextEpisode();
+            }
+        },
+        tooltip: '下集'
+    },
+]
+
 // 页面加载
 document.addEventListener('DOMContentLoaded', function () {
     // 先检查用户是否已通过密码验证
@@ -468,6 +504,10 @@ function initPlayer(videoUrl) {
         hotkey: false,
         theme: '#23ade5',
         lang: navigator.language.toLowerCase(),
+        controls: [
+            
+            
+        ],
         moreVideoAttr: {
             crossOrigin: 'anonymous',
         },
@@ -614,13 +654,20 @@ function initPlayer(videoUrl) {
 
     // 全屏状态切换时注册/移除 mouseout 事件，监听鼠标移出屏幕事件
     // 从而对播放器状态栏进行隐藏倒计时
+    // 全屏时，也会添加一些控制按钮
     function handleFullScreen(isFullScreen, isWeb) {
         if (isFullScreen) {
-            document.addEventListener('mouseout', handleMouseOut);
+            // document.addEventListener('mouseout', handleMouseOut);
+            fullScreenControls.forEach((item) => {
+                art.controls.add(item)
+            })
         } else {
             document.removeEventListener('mouseout', handleMouseOut);
             // 退出全屏时清理计时器
             clearTimeout(hideTimer);
+            fullScreenControls.forEach((item) => {
+                art.controls.remove(item.name)
+            })
         }
 
         if (!isWeb) {
@@ -632,6 +679,7 @@ function initPlayer(videoUrl) {
                     });
             }
         }
+        
     }
 
     // 播放器加载完成后初始隐藏工具栏
