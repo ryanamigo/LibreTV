@@ -128,6 +128,17 @@ const fullScreenControls = [
         },
         tooltip: '下集'
     },
+    {
+        name: 'episodes',
+        position: 'right',
+        html: '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>',
+        index: 10,
+        style: {marginRight: '8px'},
+        click: function() {
+            toggleEpisodeDrawer();
+        },
+        tooltip: '选集'
+    }
 ]
 
 // 页面加载
@@ -279,12 +290,13 @@ function initializePageContent() {
     // 更新排序按钮状态
     updateOrderButton();
 
+    // 更新抽屉中的剧集列表
+    createDrawerContent();
+
     // 添加对进度条的监听，确保点击准确跳转
     setTimeout(() => {
         setupProgressBarPreciseClicks();
-    }, 1000);
-
-    // 添加键盘快捷键事件监听
+    }, 1000);    // 添加键盘快捷键事件监听
     document.addEventListener('keydown', handleKeyboardShortcuts);
 
     // 添加页面离开事件监听，保存播放位置
@@ -432,6 +444,100 @@ function showShortcutHint(text, direction) {
     }, 2000);
 }
 
+// 选集抽屉控制
+let drawerVisible = false;
+let drawerLayer = null;
+
+// 创建一个默认隐藏的抽屉容器
+const hiddenDrawerContainer = document.createElement('div');
+hiddenDrawerContainer.style.position = 'fixed';
+hiddenDrawerContainer.style.top = '-9999px';
+hiddenDrawerContainer.style.left = '-9999px';
+document.body.appendChild(hiddenDrawerContainer);
+
+function createDrawerContent() {
+    const episodeButtons = currentEpisodes.map((episode, index) => `
+        <div class="episode-drawer-item${index === currentEpisodeIndex ? ' active' : ''}" 
+             onclick="(() => {
+                 if (${index} !== currentEpisodeIndex) {
+                     currentEpisodeIndex = ${index};
+                     playEpisode(${index});
+                     // 更新抽屉内容
+                     hiddenDrawerContainer.innerHTML = '';
+                     createDrawerContent();
+                     // 如果抽屉是可见的，更新layer内容
+                     if (drawerVisible && art && art.layers) {
+                         art.layers.update({
+                             name: 'episode-drawer',
+                             html: hiddenDrawerContainer.innerHTML
+                         });
+                     }
+                 }
+                 toggleEpisodeDrawer();
+             })()">
+            <span class="episode-number">第${index + 1}集</span>
+        </div>
+    `).join('');
+
+    const container = document.createElement('div');
+    container.className = 'episode-drawer-content';
+    container.innerHTML = `
+        <div class="episode-drawer-header">
+            <h3 class="drawer-title">选集</h3>
+            <button class="episode-drawer-close" onclick="toggleEpisodeDrawer()">
+                <svg class="close-icon" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="episode-drawer-grid">
+            ${episodeButtons}
+        </div>
+    `;
+    
+    hiddenDrawerContainer.appendChild(container);
+}
+
+function toggleEpisodeDrawer() {
+    drawerVisible = !drawerVisible;
+    
+    if (drawerVisible) {
+        // 在全屏模式下，使用layer显示
+        art.layers.update({
+            name: 'episode-drawer',
+            html: hiddenDrawerContainer.innerHTML,
+            style: {
+                position: 'absolute',
+                top: '0',
+                right: '0',
+                width: '320px',
+                height: '100%',
+                background: 'rgba(0, 0, 0, 0.5)',
+                transition: 'transform 0.3s ease',
+                transform: 'translateX(100%)'
+            }
+        });
+        
+        // 等待DOM更新后添加显示类
+        setTimeout(() => {
+            const layer = art.layers['episode-drawer'];
+            if (layer && layer.style) {
+                layer.style.transform = 'translateX(0)';
+            }
+        }, 50);
+    } else {
+
+        art.layers.update({
+            name: 'episode-drawer',
+            html: '',
+            style: {}
+        });
+        
+    }
+}
+
+
+
 // 初始化播放器
 function initPlayer(videoUrl) {
     if (!videoUrl) {
@@ -443,6 +549,9 @@ function initPlayer(videoUrl) {
         art.destroy();
         art = null;
     }
+
+    // 重置抽屉状态
+    drawerVisible = false;
 
     // 配置HLS.js选项
     const hlsConfig = {
@@ -494,6 +603,7 @@ function initPlayer(videoUrl) {
         aspectRatio: false,
         fullscreen: true,
         fullscreenWeb: true,
+        fullscreenWebTarget: '#player',
         subtitleOffset: false,
         miniProgressBar: true,
         mutex: true,
@@ -504,9 +614,13 @@ function initPlayer(videoUrl) {
         hotkey: false,
         theme: '#23ade5',
         lang: navigator.language.toLowerCase(),
-        controls: [
-            
-            
+        controls: [],
+        layers: [
+            {
+                name: 'episode-drawer',
+                html: '',
+                style: {}
+            }
         ],
         moreVideoAttr: {
             crossOrigin: 'anonymous',
@@ -657,17 +771,27 @@ function initPlayer(videoUrl) {
     // 全屏时，也会添加一些控制按钮
     function handleFullScreen(isFullScreen, isWeb) {
         if (isFullScreen) {
-            // document.addEventListener('mouseout', handleMouseOut);
+            document.addEventListener('mouseout', handleMouseOut);
             fullScreenControls.forEach((item) => {
                 art.controls.add(item)
-            })
+            });
+            
+            // 如果抽屉是可见的，重新创建为layer
+            if (drawerVisible) {
+                toggleEpisodeDrawer(); // 关闭当前抽屉
+            }
         } else {
             document.removeEventListener('mouseout', handleMouseOut);
             // 退出全屏时清理计时器
             clearTimeout(hideTimer);
             fullScreenControls.forEach((item) => {
                 art.controls.remove(item.name)
-            })
+            });
+            
+            // 如果抽屉是可见的，将其转移到普通DOM中
+            if (drawerVisible) {
+                toggleEpisodeDrawer(); // 关闭当前layer
+            }
         }
 
         if (!isWeb) {
