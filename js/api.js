@@ -161,8 +161,14 @@ async function handleApiRequest(url) {
                         episodes = episodeList.map(ep => {
                             const parts = ep.split('$');
                             // 返回URL部分(通常是第二部分，如果有的话)
-                            return parts.length > 1 ? parts[1] : '';
-                        }).filter(url => url && (url.startsWith('http://') || url.startsWith('https://')));
+                            if (parts.length > 1) {
+                                return {
+                                    name: parts[0],
+                                    url: parts[1]
+                                }
+                            }
+                            return null;
+                        }).filter(episode => episode && (episode.url.startsWith('http://') || episode.url.startsWith('https://')));
                     }
                 }
                 

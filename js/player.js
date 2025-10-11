@@ -1047,8 +1047,8 @@ function renderEpisodes() {
         html += `
             <button id="episode-${realIndex}" 
                     onclick="playEpisode(${realIndex})" 
-                    class="px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333] hover:!shadow-none'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center episode-btn">
-                ${realIndex + 1}
+                    class="text-xs px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333] hover:!shadow-none'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center episode-btn">
+                ${episode.name}
             </button>
         `;
     });
@@ -1700,7 +1700,7 @@ async function testVideoSourceSpeed(sourceKey, vodId) {
         }
         
         // 测试第一个播放链接的响应速度
-        const firstEpisodeUrl = data.episodes[0];
+        const firstEpisodeUrl = data.episodes[0].url;
         if (!firstEpisodeUrl) {
             return { speed: -1, error: '链接无效' };
         }
@@ -1937,7 +1937,7 @@ async function switchToResource(sourceKey, vodId) {
         }
         
         // 获取目标集数的URL
-        const targetUrl = data.episodes[targetIndex];
+        const targetUrl = data.episodes[targetIndex].url;
         
         // 构建播放页面URL
         const watchUrl = `player.html?id=${vodId}&source=${sourceKey}&url=${encodeURIComponent(targetUrl)}&index=${targetIndex}&title=${encodeURIComponent(currentVideoTitle)}`;
