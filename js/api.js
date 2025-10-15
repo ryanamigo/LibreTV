@@ -76,7 +76,6 @@ async function handleApiRequest(url) {
         if (url.pathname === '/api/detail') {
             const id = url.searchParams.get('id');
             const sourceCode = url.searchParams.get('source') || 'heimuer'; // 获取源代码
-            
             if (!id) {
                 throw new Error('缺少视频ID参数');
             }
@@ -136,6 +135,7 @@ async function handleApiRequest(url) {
                 
                 // 解析JSON
                 const data = await response.json();
+                console.log(data, '**');
                 
                 // 检查返回的数据是否有效
                 if (!data || !data.list || !Array.isArray(data.list) || data.list.length === 0) {
@@ -163,7 +163,7 @@ async function handleApiRequest(url) {
                             // 返回URL部分(通常是第二部分，如果有的话)
                             if (parts.length > 1) {
                                 return {
-                                    name: parts[0],
+                                    name: parts[0] || '',
                                     url: parts[1]
                                 }
                             }
@@ -314,28 +314,57 @@ async function handleSpecialSourceDetail(id, sourceCode) {
         // 获取HTML内容
         const html = await response.text();
         
-        // 根据不同源类型使用不同的正则表达式
-        let matches = [];
-        
-        if (sourceCode === 'ffzy') {
-            // 非凡影视使用特定的正则表达式
-            const ffzyPattern = /\$(https?:\/\/[^"'\s]+?\/\d{8}\/\d+_[a-f0-9]+\/index\.m3u8)/g;
-            matches = html.match(ffzyPattern) || [];
+        // 优先从页面的集数标题中解析“名称$URL”结构
+        // 例如：<span class="list-title">第1集$https://example.com/xxx</span>
+        const episodes = [];
+        const titleSpanPattern = /<span[^>]*class=["']list-title["'][^>]*>\s*([\s\S]*?)<\/span>/g;
+        let spanMatch;
+        while ((spanMatch = titleSpanPattern.exec(html)) !== null) {
+            const text = (spanMatch[1] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+            // 捕获 名称$URL 结构，URL 不限制为 .m3u8，以适配如 https://vv.jisuzyv.com/play/xxx
+            const nameUrlMatch = text.match(/(.+?)\s*\$\s*(https?:\/\/[^^\s<"')]+)/);
+            if (nameUrlMatch) {
+                const name = (nameUrlMatch[1] || '').trim();
+                const url = (nameUrlMatch[2] || '').trim();
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    episodes.push({ name, url });
+                }
+            }
         }
-        
-        // 如果没有找到链接或者是其他源类型，尝试一个更通用的模式
-        if (matches.length === 0) {
-            const generalPattern = /\$(https?:\/\/[^"'\s]+?\.m3u8)/g;
-            matches = html.match(generalPattern) || [];
+
+        // 如果未从标题中解析到，退回到原有的 URL 抓取逻辑
+        if (episodes.length === 0) {
+            let matches = [];
+            if (sourceCode === 'ffzy') {
+                // 非凡影视使用特定的正则表达式
+                const ffzyPattern = /\$(https?:\/\/[^"'\s]+?\/\d{8}\/\d+_[a-f0-9]+\/index\.m3u8)/g;
+                matches = html.match(ffzyPattern) || [];
+            }
+            if (matches.length === 0) {
+                const generalPattern = /\$(https?:\/\/[^"'\s]+)/g; // 放宽，不仅限 .m3u8
+                matches = html.match(generalPattern) || [];
+            }
+            // 去重并清洗
+            matches = [...new Set(matches)].map(link => {
+                let cleaned = link.substring(1); // 去掉前导 $
+                const parenIndex = cleaned.indexOf('(');
+                cleaned = parenIndex > 0 ? cleaned.substring(0, parenIndex) : cleaned;
+                return cleaned.trim();
+            }).filter(u => u.startsWith('http://') || u.startsWith('https://'));
+
+            // 转为对象结构，名称留空
+            matches.forEach(u => episodes.push({ name: '', url: u }));
         }
-        // 去重处理，避免一个播放源多集显示
-        matches = [...new Set(matches)];
-        // 处理链接
-        matches = matches.map(link => {
-            link = link.substring(1, link.length);
-            const parenIndex = link.indexOf('(');
-            return parenIndex > 0 ? link.substring(0, parenIndex) : link;
-        });
+
+        // 最终去重（基于 url）
+        const uniqueEpisodes = [];
+        const seenUrls = new Set();
+        for (const ep of episodes) {
+            if (!seenUrls.has(ep.url)) {
+                seenUrls.add(ep.url);
+                uniqueEpisodes.push(ep);
+            }
+        }
         
         // 提取可能存在的标题、简介等基本信息
         const titleMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
@@ -346,7 +375,7 @@ async function handleSpecialSourceDetail(id, sourceCode) {
         
         return JSON.stringify({
             code: 200,
-            episodes: matches,
+            episodes: uniqueEpisodes,
             detailUrl: detailUrl,
             videoInfo: {
                 title: titleText,

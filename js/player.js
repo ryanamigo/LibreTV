@@ -1048,7 +1048,7 @@ function renderEpisodes() {
             <button id="episode-${realIndex}" 
                     onclick="playEpisode(${realIndex})" 
                     class="text-xs px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333] hover:!shadow-none'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center episode-btn">
-                ${episode.name}
+                ${episode.name || (realIndex + 1)}
             </button>
         `;
     });

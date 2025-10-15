@@ -881,7 +881,7 @@ async function showDetails(id, vod_name, sourceCode) {
                 showToast('自定义API配置无效', 'error');
                 hideLoading();
                 return;
-            }
+            } 
             // 传递 detail 字段
             if (customApi.detail) {
                 apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&customDetail=' + encodeURIComponent(customApi.detail) + '&source=custom';
@@ -897,7 +897,7 @@ async function showDetails(id, vod_name, sourceCode) {
         const timestamp = new Date().getTime();
         const cacheBuster = `&_t=${timestamp}`;
         const response = await fetch(`/api/detail?id=${encodeURIComponent(id)}${apiParams}${cacheBuster}`);
-
+        
         const data = await response.json();
 
         const modal = document.getElementById('modal');
@@ -1100,7 +1100,7 @@ function renderEpisodes(vodName, sourceCode, vodId) {
         return `
             <button id="episode-${realIndex}" onclick="playVideo('${episode.url}','${vodName.replace(/"/g, '&quot;')}', '${sourceCode}', ${realIndex}, '${vodId}')" 
                     class="text-sm px-4 py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors text-center episode-btn">
-                ${episode.name}
+                ${episode.name || (realIndex + 1)}
             </button>
         `;
     }).join('');
