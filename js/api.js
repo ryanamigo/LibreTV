@@ -341,7 +341,7 @@ async function handleSpecialSourceDetail(id, sourceCode) {
                 matches = html.match(ffzyPattern) || [];
             }
             if (matches.length === 0) {
-                const generalPattern = /\$(https?:\/\/[^"'\s]+)/g; // 放宽，不仅限 .m3u8
+                const generalPattern = /\$(https?:\/\/[^"'\s]+?\.m3u8)/g;
                 matches = html.match(generalPattern) || [];
             }
             // 去重并清洗
