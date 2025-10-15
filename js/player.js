@@ -1088,7 +1088,7 @@ function playEpisode(index) {
     const sourceCode = urlParams2.get('source_code');
 
     // 准备切换剧集的URL
-    const url = currentEpisodes[index];
+    const url = currentEpisodes[index].url;
 
     // 更新当前剧集索引
     currentEpisodeIndex = index;

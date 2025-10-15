@@ -321,8 +321,8 @@ async function handleSpecialSourceDetail(id, sourceCode) {
         let spanMatch;
         while ((spanMatch = titleSpanPattern.exec(html)) !== null) {
             const text = (spanMatch[1] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-            // 捕获 名称$URL 结构，URL 不限制为 .m3u8，以适配如 https://vv.jisuzyv.com/play/xxx
-            const nameUrlMatch = text.match(/(.+?)\s*\$\s*(https?:\/\/[^^\s<"')]+)/);
+            // 捕获 名称$URL 结构，URL需要以 .m3u8 结尾
+            const nameUrlMatch = text.match(/(.+?)\s*\$\s*(https?:\/\/[^^\s<"')]+\.m3u8)/);
             if (nameUrlMatch) {
                 const name = (nameUrlMatch[1] || '').trim();
                 const url = (nameUrlMatch[2] || '').trim();
